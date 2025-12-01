@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Card Records</title>
+    <style>
+        /* --- General Styling & Font --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            background-color: #e9ecef; 
+            color: #343a40;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+        }
+        h1 {
+            text-align: center;
+            color: #007bff; 
+            margin-bottom: 5px;
+            font-size: 2.5em;
+        }
+
+        /* --- Month Input & Navigation --- */
+        #headerControls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        #monthDisplay {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #007bff;
+            text-align: center;
+            flex-grow: 1;
+            cursor: pointer; 
+            border-bottom: 2px solid #007bff;
+            padding: 5px 10px;
+        }
+        .nav-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        .nav-btn:hover { background-color: #0056b3; }
+
+        .guide-box {
+            background-color: #e3f2fd; 
+            border: 1px solid #bbdefb;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+        .guide-box strong {
+            color: #0056b3;
+        }
+
+        /* --- Table Styling --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: right;
+            min-width: 60px;
+        }
+        
+        /* BARU: Memastikan semua 4 sel header utama berwarna biru terang */
+        #expenseTable thead tr:first-child th {
+            background-color: #a3daff !important; /* Biru yang lebih terang. !important diperlukan untuk mengatasi konflik */
+            color: #343a40; 
+            text-align: center;
+            font-weight: 600;
+            position: sticky; 
+            top: 0;
+            z-index: 10;
+        }
+        
+        /* 2. STYLING UNTUK SUB-HEADER KATEGORI (PENDING, MAKAN, MINYAK, TUNANG, LAIN2) */
+        #expenseTable thead tr:nth-child(2) th {
+            background-color: #e9f7ff; 
+            font-weight: 700;
+        }
+
+        .date { text-align: center; }
+        .item { text-align: left; min-width: 180px; }
+
+        /* --- Editable & Sync Controls --- */
+        .editable {
+            background-color: #fffde7; /* KUNING AIR LEMBUT (Latar belakang data input utama) */
+            cursor: text;
+            outline: none;
+        }
+        .editable:focus {
+            background-color: #fff;
+            outline: 2px solid #ffc107; 
+        }
+        .sync-control {
+            /* Warna latar belakang untuk kotak data AMOUNT & CODE - Sama seperti .editable */
+            background-color: #fffde7 !important; 
+            font-weight: bold;
+        }
+        .sync-target {
+            /* Warna Latar Belakang Seragam untuk kotak data kategori PENDING hingga LAIN2 */
+            background-color: #f8f9fa; 
+        }
+
+        /* --- Total & Summary --- */
+        .total-row th, .total-row td {
+            background-color: #ffc107; 
+            color: #343a40;
+            font-weight: bold;
+            font-size: 1.1em;
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+        }
+        .summary-table-container {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ccc;
+        }
+        .summary-table {
+            width: 100%; 
+            font-size: 1em;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .summary-table th, .summary-table td {
+            padding: 8px;
+            border: none;
+            border-bottom: 1px dashed #ced4da;
+        }
+        .summary-table th {
+            width: 60%;
+            background-color: #f8f9fa;
+            color: #343a40;
+            text-align: left;
+        }
+        .summary-table .value {
+            font-weight: bold;
+            text-align: right;
+        }
+        #paidAmountSummary {
+            background-color: #d4edda; 
+            outline: 1px solid #c3e6cb;
+            padding-right: 5px; 
+        }
+        .summary-table tr:nth-child(3) { background-color: #fff3cd; } 
+        .summary-table tr:nth-child(5) { background-color: #e9f7ff; } 
+
+        /* --- Highlights & Buttons --- */
+        .cancelled-row td { 
+            background-color: #f8d7da !important; 
+            color: #721c24; 
+        }
+        
+        #addItemBtn, #toggleSummaryBtn {
+            padding: 10px 18px; 
+            background-color: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin-bottom: 15px;
+            transition: background-color 0.3s;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        #addItemBtn:hover, #toggleSummaryBtn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Credit Card Records</h1>
+        
+        <div id="headerControls">
+            <button class="nav-btn" onclick="navigateMonth(-1)">← Prev Month</button>
+            <div id="monthDisplay" contenteditable="true" oninput="saveCurrentMonthName()">DEC 2025</div>
+            <button class="nav-btn" onclick="navigateMonth(1)">Next Month →</button>
+        </div>
+        
+        <div class="guide-box">
+            <strong>GUIDE PENGGUNAAN CODE:</strong>
+            <p>Masukkan kod 1 huruf berikut di kolum **CODE** untuk mengkategorikan perbelanjaan secara automatik:</p>
+            <ul>
+                <li>**P** = PENDING (Perbelanjaan yang belum selesai bayar/belum jelas)</li>
+                <li>**M** = MAKAN (Makanan & Minuman)</li>
+                <li>**Y** = MINYAK (Petrol & Perbelanjaan Kenderaan)</li>
+                <li>**T** = TUNANG (Perbelanjaan Majlis Pertunangan)</li>
+                <li>**L** = LAIN2 (Lain-lain / General)</li>
+            </ul>
+            <p style="font-style: italic;">Sila masukkan nilai di kolum **AMOUNT** dan **CODE**. Kolum kategori akan diisi secara automatik.</p>
+        </div>
+        
+        <button id="addItemBtn">
+            ➕ Tambah Item Baru
+        </button>
+        <button id="toggleSummaryBtn" onclick="toggleSummary()">
+            📊 Tunjuk/Sembunyi Ringkasan
+        </button>
+
+        <table id="expenseTable">
+            <thead>
+                <tr>
+                    <th rowspan="2">DATE</th>
+                    <th rowspan="2">ITEM</th>
+                    <th rowspan="2">AMOUNT (RM)</th>
+                    <th rowspan="2">CODE</th>
+                    <th colspan="5">PERINCIAN PERBELANJAAN (RM)</th> 
+                </tr>
+                <tr>
+                    <th data-type="pending" class="sync-target">PENDING</th> 
+                    <th data-type="makan" class="sync-target">MAKAN</th>
+                    <th data-type="minyak" class="sync-target">MINYAK</th>
+                    <th data-type="tunang" class="sync-target">TUNANG</th>
+                    <th data-type="lain2" class="sync-target">LAIN2</th> 
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+            <tfoot>
+                <tr class="total-row" id="finalTotalRow">
+                    <td colspan="2" style="text-align: right; font-weight: bold;">TOTAL</td>
+                    <td id="totalAmountTable">0.00</td>
+                    <td></td>
+                    <td id="totalPendingTable">0.00</td>
+                    <td id="totalMakanTable">0.00</td>
+                    <td id="totalMinyakTable">0.00</td>
+                    <td id="totalTunangTable">0.00</td>
+                    <td id="totalLain2Table">0.00</td> 
+                </tr>
+            </tfoot>
+        </table>
+        
+        <div class="summary-table-container" id="summaryContainer" style="display: none;">
+            <h3>Ringkasan Kiraan</h3>
+            <table class="summary-table">
+                <tr>
+                    <th>TOTAL KESELURUHAN</th>
+                    <td class="value" id="totalAmountSummary">RM 0.00</td>
+                </tr>
+                <tr>
+                    <th>PENDING (JUMLAH)</th>
+                    <td class="value" id="totalPendingSummary">RM 0.00</td>
+                </tr>
+                <tr>
+                    <th>MINUS PENDING (TOTAL - PENDING)</th>
+                    <td class="value" id="minusPendingSummary">RM 0.00</td>
+                </tr>
+                <tr> 
+                    <th>PAID (Manual Key In)</th>
+                    <td class="value editable" id="paidAmountSummary" contenteditable="true" oninput="updateTotals()">0.00</td>
+                </tr>
+                <tr>
+                    <th>BALANCE (Minus Pending - Paid)</th>
+                    <td class="value" id="balanceSummary">RM 0.00</td>
+                </tr>
+                <tr>
+                    <th>TOTAL - LAIN2</th>
+                    <td class="value" id="totalMinusLain2Summary">RM 0.00</td> 
+                </tr>
+            </table>
+        </div>
+        
+    </div>
+
+    <script>
+        // Data Transaksi awal (Data penuh untuk DEC 2025)
+        const initialTransactions = [
+            ["25/11/25", "TOP UP", 50.00, "L", 0.00, 0.00, 0.00, 0.00, 50.00, ""], 
+            ["25/11/25", "CARPET", 28.59, "T", 0.00, 0.00, 0.00, 28.59, 0.00, ""], 
+            ["25/11/25", "SELENDANG", 19.53, "T", 0.00, 0.00, 0.00, 19.53, 0.00, ""], 
+            ["25/11/25", "GROCERIES", 10.20, "M", 0.00, 10.20, 0.00, 0.00, 0.00, ""], 
+            ["25/11/25", "CAR HOLDER", 6.79, "L", 0.00, 0.00, 0.00, 0.00, 6.79, ""], 
+            ["25/11/25", "TILE", 28.30, "L", 0.00, 0.00, 0.00, 0.00, 28.30, ""], 
+            ["25/11/25", "NOT VALID (RM10)", 0.00, "P", 0.00, 0.00, 0.00, 0.00, 0.00, "cancelled-row"], 
+            ["28/11/25", "NOT VALID (RM28.59)", 0.00, "P", 0.00, 0.00, 0.00, 0.00, 0.00, "cancelled-row"], 
+            ["28/11/25", "Cancel refunded (RM56.23)", 0.00, "P", 0.00, 0.00, 0.00, 0.00, 0.00, "cancelled-row"], 
+            ["28/11/25", "Cancel refunded (RM56.23)", 0.00, "P", 0.00, 0.00, 0.00, 0.00, 0.00, "cancelled-row"],
+            ["28/11/25", "PHONE CASE", 17.40, "L", 0.00, 0.00, 0.00, 0.00, 17.40, ""], 
+            ["28/11/25", "BURGER KING", 23.00, "M", 0.00, 23.00, 0.00, 0.00, 0.00, ""], 
+            ["28/11/25", "CARBONARA", 4.75, "M", 0.00, 4.75, 0.00, 0.00, 0.00, ""], 
+            ["29/11/25", "MINYAK", 35.81, "Y", 0.00, 0.00, 35.81, 0.00, 0.00, ""], 
+            ["29/11/25", "MEJA MAKEUP", 126.06, "T", 0.00, 0.00, 0.00, 126.06, 0.00, ""], 
+            ["30/11/25", "GROCERIES", 49.90, "P", 49.90, 0.00, 0.00, 0.00, 0.00, ""], 
+            ["30/11/25", "MINYAK (shud b only RM35.74 only)", 50.00, "P", 50.00, 0.00, 0.00, 0.00, 0.00, ""], 
+            ["01/12/25", "HENNA PUTIH", 19.30, "P", 19.30, 0.00, 0.00, 0.00, 0.00, ""], 
+            ["01/12/25", "TISU", 47.91, "P", 47.91, 0.00, 0.00, 0.00, 0.00, ""], 
+            ["01/12/25", "MINERAL", 83.90, "P", 83.90, 0.00, 0.00, 0.00, 0.00, ""] 
+        ];
+
+        let currentMonthKey = 'DEC 2025';
+        let transactions = [];
+        const CATEGORY_MAP = {
+            'P': 4, 'M': 5, 'Y': 6, 'T': 7, 'L': 8 
+        };
+        const CATEGORY_INDICES = [4, 5, 6, 7, 8];
+        const BASE_KEY = 'ccr_data_';
+        const PAID_KEY_PREFIX = 'ccr_paid_';
+        const SUMMARY_STATE_KEY = 'ccr_summary_visible';
+
+        // --- Fungsi Navigasi Bulan ---
+
+        const parseMonthYear = (monthStr) => {
+            const parts = monthStr.split(' ');
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const monthIndex = monthNames.indexOf(parts[0].toUpperCase());
+            const year = parseInt(parts[1], 10);
+            return (monthIndex !== -1 && !isNaN(year)) ? new Date(year, monthIndex, 1) : null;
+        };
+
+        const formatDateKey = (date) => {
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const month = monthNames[date.getMonth()];
+            const year = date.getFullYear();
+            return `${month} ${year}`;
+        };
+
+        const updateMonthDisplay = () => {
+            document.getElementById('monthDisplay').textContent = currentMonthKey;
+        };
+
+        const saveCurrentMonthData = () => {
+            const rows = document.getElementById('tableBody').querySelectorAll('tr');
+            const dataToSave = [];
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                const rowData = [];
+                for(let i = 0; i < 9; i++) {
+                    let value = cells[i].textContent.trim();
+                    if (i === 2 || CATEGORY_INDICES.includes(i)) {
+                        rowData.push(cleanToFloat(value));
+                    } else {
+                        rowData.push(value);
+                    }
+                }
+                rowData.push(row.classList.contains('cancelled-row') ? 'cancelled-row' : '');
+                dataToSave.push(rowData);
+            });
+            
+            localStorage.setItem(BASE_KEY + currentMonthKey, JSON.stringify(dataToSave));
+            
+            const paidValue = cleanToFloat(document.getElementById('paidAmountSummary').textContent);
+            localStorage.setItem(PAID_KEY_PREFIX + currentMonthKey, paidValue);
+        };
+
+        const loadMonthData = (monthKey) => {
+            currentMonthKey = monthKey;
+            
+            const storedData = localStorage.getItem(BASE_KEY + monthKey);
+            if (storedData) {
+                transactions = JSON.parse(storedData);
+            } else {
+                transactions = [];
+            }
+            
+            const storedPaid = localStorage.getItem(PAID_KEY_PREFIX + monthKey);
+            const paidAmount = storedPaid ? cleanToFloat(storedPaid) : 0.00;
+            document.getElementById('paidAmountSummary').textContent = formatCurrency(paidAmount);
+            
+            renderTable();
+            updateMonthDisplay();
+        };
+
+        const navigateMonth = (direction) => {
+            saveCurrentMonthData();
+            
+            let currentDate = parseMonthYear(currentMonthKey);
+            if (!currentDate) {
+                currentDate = new Date(); 
+            }
+            
+            currentDate.setMonth(currentDate.getMonth() + direction);
+            const newMonthKey = formatDateKey(currentDate);
+            
+            loadMonthData(newMonthKey);
+        };
+
+        const saveCurrentMonthName = () => {
+            const newMonthName = document.getElementById('monthDisplay').textContent.trim().toUpperCase();
+            if (newMonthName !== currentMonthKey) {
+                saveCurrentMonthData();
+                currentMonthKey = newMonthName;
+                localStorage.setItem('currentMonthKey', currentMonthKey);
+                loadMonthData(currentMonthKey); 
+            }
+        };
+
+        // --- Fungsi Toggle Ringkasan ---
+
+        const toggleSummary = () => {
+            const container = document.getElementById('summaryContainer');
+            const isVisible = container.style.display === 'block';
+            
+            if (isVisible) {
+                container.style.display = 'none';
+                localStorage.setItem(SUMMARY_STATE_KEY, 'hidden');
+            } else {
+                container.style.display = 'block';
+                localStorage.setItem(SUMMARY_STATE_KEY, 'visible');
+            }
+        };
+
+        const initializeSummaryState = () => {
+            const storedState = localStorage.getItem(SUMMARY_STATE_KEY);
+            const container = document.getElementById('summaryContainer');
+            
+            if (storedState === 'visible') {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        };
+
+        // --- Fungsi Utama Kiraan & Render ---
+
+        const formatCurrency = (amount) => {
+            return parseFloat(amount).toFixed(2);
+        };
+        
+        const cleanToFloat = (text) => {
+            if (text === null || text.trim() === '') return 0;
+            const cleaned = text.replace(/[^0-9.]/g, '');
+            return parseFloat(cleaned) || 0;
+        };
+
+        const syncRowData = (row) => {
+            if (row.classList.contains('cancelled-row')) return;
+
+            const cells = row.querySelectorAll('td');
+            const amount = cleanToFloat(cells[2].textContent);
+            const code = cells[3].textContent.trim().toUpperCase();
+
+            // 1. Reset semua kolum kategori
+            CATEGORY_INDICES.forEach(i => {
+                cells[i].textContent = formatCurrency(0);
+            });
+
+            // 2. Masukkan nilai AMOUNT ke dalam kolum kategori yang betul
+            const targetIndex = CATEGORY_MAP[code];
+            if (targetIndex !== undefined) {
+                cells[targetIndex].textContent = formatCurrency(amount);
+            }
+            
+            updateTotals();
+            saveCurrentMonthData(); 
+        };
+
+
+        const updateTotals = () => {
+            const tableBody = document.getElementById('tableBody');
+            const rows = tableBody.querySelectorAll('tr');
+            
+            let totals = {
+                amount: 0, pending: 0, makan: 0, minyak: 0, tunang: 0, lain2: 0
+            };
+            
+            rows.forEach(row => {
+                if (row.classList.contains('cancelled-row')) return;
+
+                const cells = row.querySelectorAll('td');
+                
+                totals.amount += cleanToFloat(cells[2].textContent);
+                totals.pending += cleanToFloat(cells[4].textContent);
+                totals.makan += cleanToFloat(cells[5].textContent);
+                totals.minyak += cleanToFloat(cells[6].textContent);
+                totals.tunang += cleanToFloat(cells[7].textContent);
+                totals.lain2 += cleanToFloat(cells[8].textContent); 
+            });
+
+            // 1. Kemaskini Total di FOOTER Jadual
+            document.getElementById('totalAmountTable').textContent = formatCurrency(totals.amount);
+            document.getElementById('totalPendingTable').textContent = formatCurrency(totals.pending);
+            document.getElementById('totalMakanTable').textContent = formatCurrency(totals.makan);
+            document.getElementById('totalMinyakTable').textContent = formatCurrency(totals.minyak);
+            document.getElementById('totalTunangTable').textContent = formatCurrency(totals.tunang);
+            document.getElementById('totalLain2Table').textContent = formatCurrency(totals.lain2); 
+            
+            // 2. Kemaskini Ringkasan Kiraan
+            const totalAmount = totals.amount;
+            const totalPending = totals.pending;
+
+            const paidCell = document.getElementById('paidAmountSummary');
+            let currentPaid = cleanToFloat(paidCell.textContent); 
+            
+            const minusPending = totalAmount - totalPending; 
+            const balance = minusPending - currentPaid; 
+            const totalMinusLain2 = totalAmount - totals.lain2; 
+            
+            // Kemaskini DOM
+            paidCell.textContent = formatCurrency(currentPaid); 
+
+            document.getElementById('totalAmountSummary').textContent = `RM ${formatCurrency(totalAmount)}`;
+            document.getElementById('totalPendingSummary').textContent = `RM ${formatCurrency(totalPending)}`;
+            document.getElementById('minusPendingSummary').textContent = `RM ${formatCurrency(minusPending)}`;
+            document.getElementById('balanceSummary').textContent = `RM ${formatCurrency(balance)}`; 
+            document.getElementById('totalMinusLain2Summary').textContent = `RM ${formatCurrency(totalMinusLain2)}`;
+        };
+
+        const addNewRow = (defaultData) => {
+            const tableBody = document.getElementById('tableBody');
+            const tr = document.createElement('tr');
+            
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = String(today.getMonth() + 1).padStart(2, '0'); 
+            const year = String(today.getFullYear()).slice(-2); 
+            const formattedDate = `${day}/${month}/${year}`;
+
+            const data = defaultData || [
+                formattedDate, 
+                "Item Baru", 
+                0.00, 
+                "L", 
+                0.00, 
+                0.00, 
+                0.00, 
+                0.00, 
+                0.00,
+                "" 
+            ];
+
+            if (data.length > 9 && data[9]) { 
+                tr.classList.add(data[9]);
+            }
+
+            for (let i = 0; i < 9; i++) { 
+                const td = document.createElement('td');
+                
+                let cellValue = data[i];
+                if (i === 2 || CATEGORY_INDICES.includes(i)) {
+                    cellValue = formatCurrency(cellValue);
+                }
+                td.textContent = cellValue;
+                
+                const isEditable = i >= 0 && i <= 3; 
+                td.setAttribute('contenteditable', isEditable ? 'true' : 'false');
+
+                if (i === 0) { 
+                    td.classList.add("date", "editable");
+                } else if (i === 1) { 
+                    td.classList.add("item", "editable");
+                } else if (i === 2 || i === 3) { 
+                    td.classList.add("editable", "sync-control");
+                    td.setAttribute('oninput', 'syncRowData(this.closest("tr"))');
+                } else if (CATEGORY_INDICES.includes(i)) { 
+                    td.classList.add("sync-target");
+                }
+                
+                tr.appendChild(td);
+            }
+            
+            tableBody.appendChild(tr);
+            syncRowData(tr);
+        };
+
+        const renderTable = () => {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; 
+            
+            transactions.forEach(row => {
+                addNewRow(row); 
+            });
+            
+            updateTotals(); 
+        };
+
+
+        // --- Inisialisasi ---
+        const initializeApp = () => {
+            const decKey = 'DEC 2025';
+            
+            // 0. Semak dan Simpan Data Awal untuk DEC 2025 jika belum wujud
+            if (localStorage.getItem(BASE_KEY + decKey) === null) {
+                console.warn("DEC 2025 data initialized from default. If you see incomplete data, please clear your browser's Local Storage for this site and reload.");
+                localStorage.setItem(BASE_KEY + decKey, JSON.stringify(initialTransactions));
+                localStorage.setItem(PAID_KEY_PREFIX + decKey, 0.00); 
+            }
+
+            // 1. Muatkan nama bulan terakhir atau gunakan lalai
+            const storedMonth = localStorage.getItem('currentMonthKey') || decKey;
+            
+            // 2. Muatkan data untuk bulan tersebut
+            loadMonthData(storedMonth);
+            
+            // 3. Muatkan status ringkasan
+            initializeSummaryState();
+
+            // 4. Hook Button
+            document.getElementById('addItemBtn').addEventListener('click', () => {
+                addNewRow(); 
+                const lastRow = document.getElementById('tableBody').lastElementChild;
+                if (lastRow) {
+                    lastRow.querySelector('.item').focus();
+                }
+            });
+            
+            localStorage.setItem('currentMonthKey', currentMonthKey);
+        };
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+
+</body>
+</html>
